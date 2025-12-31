@@ -3,7 +3,7 @@ import multer from "multer";
 import fs from "fs";
 import fetch from "node-fetch";
 import FormData from "form-data";
-
+const PORT = process.env.PORT || 3000;
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
@@ -17,7 +17,16 @@ app.get("/", (req, res) => {
 /**
  * Rota de áudio
  */
+app.post("/audio", upload.single("audio"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "Nenhum áudio enviado" });
+  }
 
+  res.json({
+    message: "Áudio recebido com sucesso",
+    file: req.file.originalname,
+  });
+});
 app.listen(PORT, () => {
   console.log("Servidor rodando na porta " + PORT);
 });
