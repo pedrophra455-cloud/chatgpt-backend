@@ -6,7 +6,9 @@ import FormData from "form-data";
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
-
+app.get("/", (req, res) => {
+  res.send("Backend online 🚀");
+});
 app.post("/audio", upload.single("audio"), async (req, res) => {
   try {
     const form = new FormData();
