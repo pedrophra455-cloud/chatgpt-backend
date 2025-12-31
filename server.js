@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
-import fetch from "node-fetch";
 import fs from "fs";
+import fetch from "node-fetch";
 import FormData from "form-data";
 
 const app = express();
@@ -13,7 +13,7 @@ app.post("/audio", upload.single("audio"), async (req, res) => {
     form.append("file", fs.createReadStream(req.file.path));
     form.append("model", "gpt-4o-transcribe");
 
-    const transcription = await fetch(
+    const transRes = await fetch(
       "https://api.openai.com/v1/audio/transcriptions",
       {
         method: "POST",
@@ -22,9 +22,11 @@ app.post("/audio", upload.single("audio"), async (req, res) => {
         },
         body: form,
       }
-    ).then(r => r.json());
+    );
 
-    const chat = await fetch(
+    const transcription = await transRes.json();
+
+    const chatRes = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
         method: "POST",
@@ -34,12 +36,22 @@ app.post("/audio", upload.single("audio"), async (req, res) => {
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          messages: [{ role: "user", content: transcription.text }],
+          messages: [
+            {
+              role: "user",
+              content: transcription.text,
+            },
+          ],
         }),
       }
-    ).then(r => r.json());
+    );
 
-    res.json({ reply: chat.choices[0].message.content });
+    const chat = await chatRes.json();
+
+    res.json({
+      transcription: transcription.text,
+      reply: chat.choices[0].message.content,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
