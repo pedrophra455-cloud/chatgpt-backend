@@ -3,6 +3,9 @@ import multer from "multer";
 
 const PORT = process.env.PORT || 3000;
 const app = express();
+app.get("/", (req, res) => {
+  res.send("Servidor online 🚀");
+});
 const upload = multer({ dest: "uploads/" });
 
 /**
