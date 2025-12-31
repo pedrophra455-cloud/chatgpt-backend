@@ -1,8 +1,6 @@
 import express from "express";
 import multer from "multer";
-import fs from "fs";
-import fetch from "node-fetch";
-import FormData from "form-data";
+
 const PORT = process.env.PORT || 3000;
 const app = express();
 const upload = multer({ dest: "uploads/" });
