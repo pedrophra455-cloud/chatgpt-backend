@@ -1,87 +1,70 @@
 import express from "express";
 import multer from "multer";
-import cors from "cors";
 import fs from "fs";
-import fetch from "node-fetch";
+import axios from "axios";
 import FormData from "form-data";
+import cors from "cors";
 
 const app = express();
-const port = process.env.PORT || 3000;
+const upload = multer({ dest: "uploads/" });
 
 app.use(cors());
 app.use(express.json());
 
-const upload = multer({
-  dest: "uploads/",
-  limits: { fileSize: 20 * 1024 * 1024 } // 20MB
-});
-
+/**
+ * ROTA DE TESTE
+ */
 app.get("/", (req, res) => {
-  res.json({ ok: true, message: "Servidor online" });
+  res.json({ status: "Backend rodando OK 🚀" });
 });
 
-app.post("/audio", upload.single("audio"), async (req, res) => {
+/**
+ * ROTA DE TRANSCRIÇÃO
+ */
+app.post("/transcribe", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "Nenhum áudio enviado" });
     }
 
-    // ===== TRANSCRIÇÃO =====
     const form = new FormData();
     form.append("file", fs.createReadStream(req.file.path));
     form.append("model", "whisper-1");
 
-    const transcriptionRes = await fetch(
+    const response = await axios.post(
       "https://api.openai.com/v1/audio/transcriptions",
+      form,
       {
-        method: "POST",
         headers: {
+          ...form.getHeaders(),
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         },
-        body: form,
       }
     );
 
-    const transcription = await transcriptionRes.json();
-
-    if (!transcription.text) {
-      return res.status(500).json({ error: "Falha na transcrição" });
-    }
-
-    // ===== CHATGPT =====
-    const chatRes = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: "Responda de forma curta e direta." },
-            { role: "user", content: transcription.text }
-          ],
-        }),
-      }
-    );
-
-    const chat = await chatRes.json();
-
-    fs.unlinkSync(req.file.path); // apaga o arquivo
+    // remove o arquivo temporário
+    fs.unlinkSync(req.file.path);
 
     res.json({
-      transcription: transcription.text,
-      reply: chat.choices[0].message.content
+      transcription: response.data.text,
     });
+  } catch (err) {
+    console.error(
+      "ERRO OPENAI:",
+      err.response?.data || err.message
+    );
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro interno no servidor" });
+    res.status(500).json({
+      error: "Falha na transcrição",
+      details: err.response?.data || err.message,
+    });
   }
 });
 
-app.listen(port, () => {
-  console.log("Servidor rodando na porta", port);
+/**
+ * PORTA
+ */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
