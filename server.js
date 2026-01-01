@@ -1,15 +1,11 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import path from "path";
-import OpenAI from "openai";
+import FormData from "form-data";
+import fetch from "node-fetch";
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 app.post("/transcribe", upload.single("audio"), async (req, res) => {
   try {
@@ -17,23 +13,33 @@ app.post("/transcribe", upload.single("audio"), async (req, res) => {
       return res.status(400).json({ error: "Nenhum áudio enviado" });
     }
 
-    const filePath = path.resolve(req.file.path);
+    const form = new FormData();
+    form.append("file", fs.createReadStream(req.file.path));
+    form.append("model", "gpt-4o-transcribe");
 
-    const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(filePath),
-      model: "gpt-4o-transcribe",
-    });
+    const response = await fetch(
+      "https://api.openai.com/v1/audio/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: form,
+      }
+    );
 
-    fs.unlinkSync(filePath);
+    const data = await response.json();
 
-    res.json({ text: transcription.text });
+    fs.unlinkSync(req.file.path);
+
+    res.json({ text: data.text });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Falha na transcrição" });
+    res.status(500).json({ error: "Erro na transcrição" });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log("Servidor rodando na porta", PORT);
 });
