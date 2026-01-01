@@ -22,14 +22,13 @@ app.post("/transcribe", upload.single("audio"), async (req, res) => {
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
         },
-        body: form,
+        body: form
       }
     );
 
     const data = await response.json();
-
     fs.unlinkSync(req.file.path);
 
     res.json({ text: data.text });
