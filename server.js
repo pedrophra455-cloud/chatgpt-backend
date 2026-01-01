@@ -1,69 +1,38 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import axios from "axios";
-import FormData from "form-data";
-import cors from "cors";
+import path from "path";
+import OpenAI from "openai";
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
-app.use(cors());
-app.use(express.json());
-
-/**
- * ROTA DE TESTE
- */
-app.get("/", (req, res) => {
-  res.json({ status: "Backend rodando OK 🚀" });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-/**
- * ROTA DE TRANSCRIÇÃO
- */
-app.post("/transcribe", upload.single("file"), async (req, res) => {
+app.post("/transcribe", upload.single("audio"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "Nenhum áudio enviado" });
     }
 
-    const form = new FormData();
-    form.append("file", fs.createReadStream(req.file.path));
-    form.append("model", "whisper-1");
+    const filePath = path.resolve(req.file.path);
 
-    const response = await axios.post(
-      "https://api.openai.com/v1/audio/transcriptions",
-      form,
-      {
-        headers: {
-          ...form.getHeaders(),
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-      }
-    );
-
-    // remove o arquivo temporário
-    fs.unlinkSync(req.file.path);
-
-    res.json({
-      transcription: response.data.text,
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(filePath),
+      model: "gpt-4o-transcribe",
     });
+
+    fs.unlinkSync(filePath);
+
+    res.json({ text: transcription.text });
   } catch (err) {
-    console.error(
-      "ERRO OPENAI:",
-      err.response?.data || err.message
-    );
-
-    res.status(500).json({
-      error: "Falha na transcrição",
-      details: err.response?.data || err.message,
-    });
+    console.error(err);
+    res.status(500).json({ error: "Falha na transcrição" });
   }
 });
 
-/**
- * PORTA
- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
