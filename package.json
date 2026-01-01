@@ -1,12 +1,15 @@
-{
-  "type": "module",
-  "scripts": {
-    "start": "node src/server.js"
-  },
-  "dependencies": {
-    "express": "^4.19.2",
-    "multer": "^1.4.5",
-    "openai": "^4.30.0",
-    "fs-extra": "^11.2.0"
-  }
-}
+import express from "express";
+import transcribeRoute from "./routes/transcribe.js";
+
+const app = express();
+
+app.use("/transcribe", transcribeRoute);
+
+app.get("/", (req, res) => {
+  res.json({ status: "API online 🚀" });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
