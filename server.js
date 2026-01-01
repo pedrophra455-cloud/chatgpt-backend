@@ -29,7 +29,7 @@ app.post("/audio", upload.single("audio"), async (req, res) => {
     // ===== TRANSCRIÇÃO =====
     const form = new FormData();
     form.append("file", fs.createReadStream(req.file.path));
-    form.append("model", "gpt-4o-transcribe");
+    form.append("model", "whisper-1");
 
     const transcriptionRes = await fetch(
       "https://api.openai.com/v1/audio/transcriptions",
