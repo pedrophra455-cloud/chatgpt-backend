@@ -5,32 +5,21 @@ import fs from "fs";
 import FormData from "form-data";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Upload de arquivos
 const upload = multer({ dest: "uploads/" });
 
-// Health check (Render usa isso)
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", server: "online" });
-});
-
-// Rota raiz
 app.get("/", (req, res) => {
-  res.send("Backend online 🚀");
+  res.json({ status: "ok" });
 });
 
-// Rota de áudio (transcrição + resposta IA)
 app.post("/audio", upload.single("audio"), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: "Nenhum áudio enviado" });
+      return res.status(400).json({ error: "Arquivo de áudio não enviado" });
     }
 
-    // 1️⃣ Transcrição
     const form = new FormData();
     form.append("file", fs.createReadStream(req.file.path));
-    form.append("model", "gpt-4o-transcribe");
+    form.append("model", "whisper-1");
 
     const transcriptionResponse = await fetch(
       "https://api.openai.com/v1/audio/transcriptions",
@@ -45,7 +34,6 @@ app.post("/audio", upload.single("audio"), async (req, res) => {
 
     const transcription = await transcriptionResponse.json();
 
-    // 2️⃣ Enviar texto para IA responder
     const chatResponse = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -69,14 +57,12 @@ app.post("/audio", upload.single("audio"), async (req, res) => {
       transcription: transcription.text,
       reply: chat.choices[0].message.content,
     });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro no servidor" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro interno no servidor" });
   }
 });
 
-// Start do servidor
-app.listen(PORT, () => {
-  console.log("Servidor rodando na porta " + PORT);
+app.listen(3000, () => {
+  console.log("Servidor rodando na porta 3000");
 });
