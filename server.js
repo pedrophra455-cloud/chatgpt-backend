@@ -7,27 +7,27 @@ import FormData from "form-data";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuração do upload
+// Upload de arquivos
 const upload = multer({ dest: "uploads/" });
 
-// Rota de teste (health check)
+// Health check (Render usa isso)
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", server: "online" });
 });
 
-// Rota principal
+// Rota raiz
 app.get("/", (req, res) => {
   res.send("Backend online 🚀");
 });
 
-// Rota de áudio (transcrição + resposta da IA)
+// Rota de áudio (transcrição + resposta IA)
 app.post("/audio", upload.single("audio"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "Nenhum áudio enviado" });
     }
 
-    // 1️⃣ Transcrição do áudio
+    // 1️⃣ Transcrição
     const form = new FormData();
     form.append("file", fs.createReadStream(req.file.path));
     form.append("model", "gpt-4o-transcribe");
@@ -45,7 +45,7 @@ app.post("/audio", upload.single("audio"), async (req, res) => {
 
     const transcription = await transcriptionResponse.json();
 
-    // 2️⃣ Envio do texto para a IA responder
+    // 2️⃣ Enviar texto para IA responder
     const chatResponse = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -76,7 +76,7 @@ app.post("/audio", upload.single("audio"), async (req, res) => {
   }
 });
 
-// Inicialização do servidor
+// Start do servidor
 app.listen(PORT, () => {
   console.log("Servidor rodando na porta " + PORT);
 });
